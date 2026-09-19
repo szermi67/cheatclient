@@ -70,22 +70,30 @@ jobs:
             ]
           }
           EOF
-
-      - name: Tworzenie Menedzera Przelacznikow (ModSettings)
+      - name: Tworzenie Zaawansowanego Menedzera Przelacznikow i Opcji (ModSettings)
         run: |
           cat << 'EOF' > src/main/java/pl/serwer/nopush/gui/ModSettings.java
           package pl.serwer.nopush.gui;
           public class ModSettings {
-              public static int guiKey = 344; // Domyślnie Prawy Shift (Kod systemowy 344)
+              public static int guiKey = 344;
               public static boolean noPushActive = false;
               public static boolean antiBlindActive = false;
               public static boolean killauraActive = false;
               public static boolean chestStealerActive = false;
+              public static boolean tracersActive = false;
               public static boolean noHurtCam = true;
+              public static int noPushKey = 0;
+              public static int antiBlindKey = 0;
+              public static int killauraKey = 0;
+              public static int chestStealerKey = 0;
+              public static int tracersKey = 0;
+              public static float tracersThickness = 2.0f;
+              public static int tracersColor = 0xFFFF00FF;
+              public static double killauraRange = 4.2;
           }
           EOF
 
-      - name: Rysowanie Fioletowego Menu Dropdown na pol ekranu (ClickGuiScreen)
+      - name: Budowanie fioletowego Dropdown GUI z bindowaniem i opcjami Tracers
         run: |
           cat << 'EOF' > src/main/java/pl/serwer/nopush/gui/ClickGuiScreen.java
           package pl.serwer.nopush.gui;
@@ -96,6 +104,7 @@ jobs:
           
           public class ClickGuiScreen extends Screen {
               private boolean bindingMode = false;
+              private boolean settingsMode = false;
               private String targetModule = "";
           
               public ClickGuiScreen() {
@@ -111,25 +120,46 @@ jobs:
                   
                   context.fill(x, y, x + w, y + h, 0xCC110022); 
                   context.fill(x, y, x + w, y + 24, 0xFF4A0E70); 
-                  context.drawText(this.textRenderer, "★ PURPLE CLIENT - CUSTOM DROPDOWN MENU ★", x + 15, y + 8, 0xFFFFFFFF, false);
+                  context.drawText(this.textRenderer, "★ PURPLE CLIENT - DROPDOWN SYSTEM ★", x + 15, y + 8, 0xFFFFFFFF, false);
                   
                   if (bindingMode) {
-                      context.drawText(this.textRenderer, "[!] Nacisnij dowolny klawisz dla: " + targetModule, x + 25, y + h - 20, 0xFFFF0055, false);
+                      context.fill(x + 10, y + h - 25, x + w - 10, y + h - 5, 0xFFFF0055);
+                      context.drawText(this.textRenderer, "[BIND] Wcisnij klawisz dla: " + targetModule, x + 20, y + h - 18, 0xFFFFFFFF, false);
                   }
                   
-                  drawModuleButton(context, "NoPush (Doomsday)", x + 30, y + 45, ModSettings.noPushActive);
-                  drawModuleButton(context, "AntiBadEffects", x + 30, y + 75, ModSettings.antiBlindActive);
-                  drawModuleButton(context, "Killaura (Meteor Base)", x + 30, y + 105, ModSettings.killauraActive);
-                  drawModuleButton(context, "ChestStealer (Packet)", x + 30, y + 135, ModSettings.chestStealerActive);
+                  drawModuleButton(context, "NoPush", x + 20, y + 40, ModSettings.noPushActive, ModSettings.noPushKey);
+                  drawModuleButton(context, "AntiBadEffects", x + 20, y + 68, ModSettings.antiBlindActive, ModSettings.antiBlindKey);
+                  drawModuleButton(context, "Killaura", x + 20, y + 96, ModSettings.killauraActive, ModSettings.killauraKey);
+                  drawModuleButton(context, "ChestStealer", x + 20, y + 124, ModSettings.chestStealerActive, ModSettings.chestStealerKey);
+                  drawModuleButton(context, "Tracers", x + 20, y + 152, ModSettings.tracersActive, ModSettings.tracersKey);
+                  
+                  if (settingsMode) {
+                      int sx = x + 250;
+                      context.fill(sx, y, sx + 130, y + 120, 0xFF200035);
+                      context.fill(sx, y, sx + 130, y + 18, 0xFF6A0DAD);
+                      context.drawText(this.textRenderer, "Opcje: " + targetModule, sx + 5, y + 5, 0xFFFFFF00, false);
+                      
+                      if (targetModule.equals("Tracers")) {
+                          context.drawText(this.textRenderer, "Grubosc: " + ModSettings.tracersThickness, sx + 10, y + 30, 0xFFFFFFFF, false);
+                          context.drawText(this.textRenderer, "[L: Zwieksz]", sx + 10, y + 45, 0xFF00FF00, false);
+                          context.drawText(this.textRenderer, "Kolor: Fiolet", sx + 10, y + 65, 0xFFFFFFFF, false);
+                      } else if (targetModule.equals("Killaura")) {
+                          context.drawText(this.textRenderer, "Zasieg: " + ModSettings.killauraRange, sx + 10, y + 30, 0xFFFFFFFF, false);
+                      } else {
+                          context.drawText(this.textRenderer, "Brak dodatkowych", sx + 10, y + 35, 0xFFB0B0B0, false);
+                          context.drawText(this.textRenderer, "ustawien.", sx + 10, y + 48, 0xFFB0B0B0, false);
+                      }
+                      context.drawText(this.textRenderer, "[KLIKNIJ TU BY ZAMKNAC]", sx + 5, y + 100, 0xFFFF3333, false);
+                  }
                   
                   super.render(context, mouseX, mouseY, delta);
               }
               
-              private void drawModuleButton(DrawContext context, String name, int x, int y, boolean active) {
+              private void drawModuleButton(DrawContext context, String name, int x, int y, boolean active, int key) {
                   int btnColor = active ? 0xFF8A2BE2 : 0xFF2D2D2D;
-                  context.fill(x, y, x + 220, y + 24, btnColor);
-                  context.drawText(this.textRenderer, name, x + 10, y + 8, 0xFFFFFFFF, false);
-                  context.drawText(this.textRenderer, "PRAWY: Bind", x + 160, y + 8, 0xFFB0B0B0, false);
+                  context.fill(x, y, x + 210, y + 22, btnColor);
+                  String bindName = key == 0 ? "NONE" : String.valueOf((char)key);
+                  context.drawText(this.textRenderer, name + " [" + bindName + "]", x + 8, y + 7, 0xFFFFFFFF, false);
               }
               
               @Override
@@ -137,22 +167,38 @@ jobs:
                   int x = this.width / 4;
                   int y = this.height / 6;
                   
+                  if (settingsMode && mouseX >= x+250 && mouseX <= x+380 && mouseY >= y+100 && mouseY <= y+115) {
+                      settingsMode = false;
+                      return true;
+                  }
+                  
+                  if (settingsMode && targetModule.equals("Tracers") && button == 0) {
+                      if (mouseX >= x+250 && mouseX <= x+380 && mouseY >= y+45 && mouseY <= y+58) {
+                          ModSettings.tracersThickness += 0.5f;
+                          if (ModSettings.tracersThickness > 5.0f) ModSettings.tracersThickness = 1.0f;
+                          return true;
+                      }
+                  }
+                  
                   if (button == 0 && !bindingMode) {
-                      if (mouseX >= x + 30 && mouseX <= x + 250) {
-                          if (mouseY >= y + 45 && mouseY <= y + 69) ModSettings.noPushActive = !ModSettings.noPushActive;
-                          if (mouseY >= y + 75 && mouseY <= y + 99) ModSettings.antiBlindActive = !ModSettings.antiBlindActive;
-                          if (mouseY >= y + 105 && mouseY <= y + 129) ModSettings.killauraActive = !ModSettings.killauraActive;
-                          if (mouseY >= y + 135 && mouseY <= y + 159) ModSettings.chestStealerActive = !ModSettings.chestStealerActive;
+                      if (mouseX >= x + 20 && mouseX <= x + 230) {
+                          if (mouseY >= y + 40 && mouseY <= y + 62) ModSettings.noPushActive = !ModSettings.noPushActive;
+                          if (mouseY >= y + 68 && mouseY <= y + 90) ModSettings.antiBlindActive = !ModSettings.antiBlindActive;
+                          if (mouseY >= y + 96 && mouseY <= y + 118) ModSettings.killauraActive = !ModSettings.killauraActive;
+                          if (mouseY >= y + 124 && mouseY <= y + 146) ModSettings.chestStealerActive = !ModSettings.chestStealerActive;
+                          if (mouseY >= y + 152 && mouseY <= y + 174) ModSettings.tracersActive = !ModSettings.tracersActive;
                       }
                   }
                   
                   if (button == 1) {
-                      if (mouseX >= x + 30 && mouseX <= x + 250) {
+                      if (mouseX >= x + 20 && mouseX <= x + 230) {
                           bindingMode = true;
-                          if (mouseY >= y + 45 && mouseY <= y + 69) targetModule = "NoPush";
-                          if (mouseY >= y + 75 && mouseY <= y + 99) targetModule = "AntiBadEffects";
-                          if (mouseY >= y + 105 && mouseY <= y + 129) targetModule = "Killaura";
-                          if (mouseY >= y + 135 && mouseY <= y + 159) targetModule = "ChestStealer";
+                          settingsMode = true;
+                          if (mouseY >= y + 40 && mouseY <= y + 62) targetModule = "NoPush";
+                          if (mouseY >= y + 68 && mouseY <= y + 90) targetModule = "AntiBadEffects";
+                          if (mouseY >= y + 96 && mouseY <= y + 118) targetModule = "Killaura";
+                          if (mouseY >= y + 124 && mouseY <= y + 146) targetModule = "ChestStealer";
+                          if (mouseY >= y + 152 && mouseY <= y + 174) targetModule = "Tracers";
                       }
                   }
                   return super.mouseClicked(mouseX, mouseY, button);
@@ -161,7 +207,13 @@ jobs:
               @Override
               public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
                   if (bindingMode) {
-                      if (targetModule.equals("GUI Menu")) ModSettings.guiKey = keyCode;
+                      if (keyCode != 256) {
+                          if (targetModule.equals("NoPush")) ModSettings.noPushKey = keyCode;
+                          if (targetModule.equals("AntiBadEffects")) ModSettings.antiBlindKey = keyCode;
+                          if (targetModule.equals("Killaura")) ModSettings.killauraKey = keyCode;
+                          if (targetModule.equals("ChestStealer")) ModSettings.chestStealerKey = keyCode;
+                          if (targetModule.equals("Tracers")) ModSettings.tracersKey = keyCode;
+                      }
                       bindingMode = false;
                       return true;
                   }
@@ -172,7 +224,7 @@ jobs:
               public boolean shouldPause() { return false; }
           }
           EOF
-      - name: Tworzenie Mixinow (NoPush, AntiBlindness, GameRenderer, Keyboard)
+      - name: Tworzenie Mixinow (NoPush, AntiBlindness, GameRenderer, Keyboard z obsługą bindowania z klawiatury)
         run: |
           cat << 'EOF' > src/main/java/pl/serwer/nopush/mixin/LocalPlayerMixin.java
           package pl.serwer.nopush.mixin;
@@ -242,6 +294,14 @@ jobs:
               private void onKeyInput(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
                   if (key == ModSettings.guiKey && action == 1 && MinecraftClient.getInstance().currentScreen == null) {
                       MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new ClickGuiScreen()));
+                      return;
+                  }
+                  if (action == 1 && MinecraftClient.getInstance().currentScreen == null) {
+                      if (key == ModSettings.noPushKey) ModSettings.noPushActive = !ModSettings.noPushActive;
+                      if (key == ModSettings.antiBlindKey) ModSettings.antiBlindActive = !ModSettings.antiBlindActive;
+                      if (key == ModSettings.killauraKey) ModSettings.killauraActive = !ModSettings.killauraActive;
+                      if (key == ModSettings.chestStealerKey) ModSettings.chestStealerActive = !ModSettings.chestStealerActive;
+                      if (key == ModSettings.tracersKey) ModSettings.tracersActive = !ModSettings.tracersActive;
                   }
               }
           }
